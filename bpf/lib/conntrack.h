@@ -23,6 +23,7 @@ enum {
 	ACTION_UNSPEC,
 	ACTION_CREATE,
 	ACTION_CLOSE,
+	ACTION_RESET,
 };
 
 /* conn_is_dns returns true if the connection is DNS, false otherwise.
@@ -37,6 +38,20 @@ enum {
 static __always_inline bool conn_is_dns(__u16 dport)
 {
 	return dport == bpf_htons(53);
+}
+
+static __always_inline void ct_entry_terminate(struct ct_entry *entry)
+{
+	entry->rx_closing = 1;
+	entry->tx_closing = 1;
+}
+
+static __always_inline bool ct_entry_seen_both_syns(const struct ct_entry *entry)
+{
+	bool rx_syn = entry->rx_flags_seen & TCP_FLAG_SYN;
+	bool tx_syn = entry->tx_flags_seen & TCP_FLAG_SYN;
+
+	return rx_syn && tx_syn;
 }
 
 union tcp_flags {
@@ -253,6 +268,15 @@ static __always_inline __u8 __ct_lookup(const void *map, struct __ctx_buff *ctx,
 				return CT_REOPENED;
 			}
 			break;
+
+		case ACTION_RESET:
+			/* We got an RST. If we have not seen both SYNs,
+			 * terminate the connection
+			 */
+			if (!ct_entry_seen_both_syns(entry))
+				ct_entry_terminate(entry);
+			/* fallthrough */
+
 		case ACTION_CLOSE:
 			/* RST or similar, immediately delete ct entry */
 			if (dir == CT_INGRESS)
@@ -406,7 +430,9 @@ static __always_inline int ct_lookup6(const void *map,
 			if (ctx_load_bytes(ctx, l4_off + 12, &tcp_flags, 2) < 0)
 				return DROP_CT_INVALID_HDR;
 
-			if (unlikely(tcp_flags.value & (TCP_FLAG_RST|TCP_FLAG_FIN)))
+			if (unlikely(tcp_flags.value & TCP_FLAG_RST))
+				action = ACTION_RESET;
+			else if (unlikely(tcp_flags.value & TCP_FLAG_FIN))
 				action = ACTION_CLOSE;
 			else
 				action = ACTION_CREATE;
@@ -632,7 +658,9 @@ static __always_inline int ct_lookup4(const void *map,
 			if (ctx_load_bytes(ctx, off + 12, &tcp_flags, 2) < 0)
 				return DROP_CT_INVALID_HDR;
 
-			if (unlikely(tcp_flags.value & (TCP_FLAG_RST|TCP_FLAG_FIN)))
+			if (unlikely(tcp_flags.value & TCP_FLAG_RST))
+				action = ACTION_RESET;
+			else if (unlikely(tcp_flags.value & TCP_FLAG_FIN))
 				action = ACTION_CLOSE;
 		}
 		break;
