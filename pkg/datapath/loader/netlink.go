@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/cilium/cilium/pkg/bpf"
 	"github.com/cilium/cilium/pkg/command/exec"
@@ -105,7 +106,7 @@ func (l *Loader) replaceDatapath(ctx context.Context, ifName, objPath, progSec, 
 }
 
 // graftDatapath replaces obj in tail call map
-func graftDatapath(ctx context.Context, mapPath, objPath, progSec string) error {
+func graftDatapath(ctx context.Context, mapPath, objPath, progSec string, key int) error {
 	var err error
 
 	// FIXME: Replace cilium-map-migrate with Golang map migration
@@ -128,8 +129,7 @@ func graftDatapath(ctx context.Context, mapPath, objPath, progSec string) error 
 	}()
 
 	// FIXME: replace exec with native call
-	// FIXME: only key 0 right now, could be made more flexible
-	args := []string{"exec", "bpf", "graft", mapPath, "key", "0",
+	args := []string{"exec", "bpf", "graft", mapPath, "key", strconv.FormatInt(int64(key), 10),
 		"obj", objPath, "sec", progSec,
 	}
 	cmd = exec.CommandContext(ctx, "tc", args...).WithFilters(libbpfFixupMsg)
