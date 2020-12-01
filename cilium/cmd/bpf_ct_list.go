@@ -15,12 +15,14 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/cilium/cilium/api/v1/client/daemon"
+	"github.com/cilium/cilium/api/v1/models"
 	"github.com/cilium/cilium/pkg/bpf"
 	"github.com/cilium/cilium/pkg/command"
 	"github.com/cilium/cilium/pkg/common"
@@ -46,11 +48,16 @@ var (
 			dumpCt(ctMaps, args[0])
 		},
 	}
-	timeDiff bool
+
+	timeDiff                bool
+	timeDiffClockSourceMode string
+	timeDiffClockSourceHz   int64
 )
 
 func init() {
 	bpfCtListCmd.Flags().BoolVarP(&timeDiff, "time-diff", "d", false, "print time difference for entries")
+	bpfCtListCmd.Flags().StringVar(&timeDiffClockSourceMode, "time-diff-clocksource-mode", "", "manually set clock source mode (instead of contacting the server)")
+	bpfCtListCmd.Flags().Int64Var(&timeDiffClockSourceHz, "time-diff-clocksource-hz", 250, "manually set clock source Hz")
 	bpfCtCmd.AddCommand(bpfCtListCmd)
 	command.AddJSONOutput(bpfCtListCmd)
 }
@@ -63,25 +70,51 @@ func getMaps(eID string) []*ctmap.Map {
 	return ctmap.LocalMaps(&dummyEndpoint{ID: id}, true, true)
 }
 
+func getClockSourceFromAgent() (*models.ClockSource, error) {
+	params := daemon.NewGetHealthzParamsWithTimeout(5 * time.Second)
+	brief := false
+	params.SetBrief(&brief)
+	resp, err := client.Daemon.GetHealthz(params)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Payload.ClockSource == nil {
+		return nil, errors.New("could not determine clocksource")
+	}
+
+	return resp.Payload.ClockSource, nil
+}
+
+func getClockSource() (*models.ClockSource, error) {
+	switch timeDiffClockSourceMode {
+	case "":
+		return getClockSourceFromAgent()
+	case models.ClockSourceModeKtime:
+		return &models.ClockSource{
+			Mode: models.ClockSourceModeKtime,
+		}, nil
+
+	case models.ClockSourceModeJiffies:
+		return &models.ClockSource{
+			Mode:  models.ClockSourceModeJiffies,
+			Hertz: timeDiffClockSourceHz,
+		}, nil
+
+	default:
+		return nil, errors.New("invalid clocksource")
+	}
+}
+
 func doDumpEntries(m ctmap.CtMap) {
 	var out string
 	var err error
 
 	if timeDiff {
-		params := daemon.NewGetHealthzParamsWithTimeout(5 * time.Second)
-		brief := false
-		params.SetBrief(&brief)
-		resp, err := client.Daemon.GetHealthz(params)
-		if err != nil {
-			Fatalf("error reaching server %s", err)
-		}
-
-		if resp.Payload.ClockSource == nil {
-			Fatalf("could not determine clocksource")
-		}
-		out, err = ctmap.DumpEntriesWithTimeDiff(m, *resp.Payload.ClockSource)
-		if err != nil {
-			Fatalf("Error while dumping BPF Map: %s", err)
+		var clock *models.ClockSource
+		clock, err = getClockSource()
+		if err == nil {
+			out, err = ctmap.DumpEntriesWithTimeDiff(m, *clock)
 		}
 	} else {
 		out, err = m.(ctmap.CtMap).DumpEntries()
