@@ -25,7 +25,7 @@ import (
 type CNIChainingStatus struct {
 
 	// mode
-	// Enum: [none aws-cni flannel generic-veth portmap]
+	// Enum: [none aws-cni flannel generic-veth portmap pod-link]
 	Mode string `json:"mode,omitempty"`
 }
 
@@ -47,7 +47,7 @@ var cNIChainingStatusTypeModePropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["none","aws-cni","flannel","generic-veth","portmap"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["none","aws-cni","flannel","generic-veth","portmap","pod-link"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -71,6 +71,9 @@ const (
 
 	// CNIChainingStatusModePortmap captures enum value "portmap"
 	CNIChainingStatusModePortmap string = "portmap"
+
+	// CNIChainingStatusModePodLink captures enum value "pod-link"
+	CNIChainingStatusModePodLink string = "pod-link"
 )
 
 // prop value enum
