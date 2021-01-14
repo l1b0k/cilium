@@ -668,7 +668,8 @@ func NewDaemon(ctx context.Context, epMgr *endpointmanager.EndpointManager, dp d
 
 	// Trigger refresh and update custom resource in the apiserver with all restored endpoints.
 	// Trigger after nodeDiscovery.StartDiscovery to avoid custom resource update conflict.
-	if option.Config.IPAM == ipamOption.IPAMCRD || option.Config.IPAM == ipamOption.IPAMENI || option.Config.IPAM == ipamOption.IPAMAzure {
+	if option.Config.IPAM == ipamOption.IPAMCRD || option.Config.IPAM == ipamOption.IPAMENI || option.Config.IPAM == ipamOption.IPAMAzure ||
+		option.Config.IPAM == ipamOption.IPAMAlibabaCloud {
 		if option.Config.EnableIPv6 {
 			d.ipam.IPv6Allocator.RestoreFinished()
 		}

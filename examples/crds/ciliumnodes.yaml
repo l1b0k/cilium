@@ -55,6 +55,46 @@ spec:
                       type: string
                   type: object
                 type: array
+              alibaba-cloud:
+                description: AlibabaCloud is the AlibabaCloud IPAM specific configuration.
+                properties:
+                  availability-zone:
+                    description: AvailabilityZone is the availability zone to use
+                      when allocating ENIs.
+                    type: string
+                  cidr-block:
+                    description: CidrBlock is vpc ipv4 CIDR
+                    type: string
+                  instance-type:
+                    description: InstanceType is the ECS instance type, e.g. "m5.large"
+                    type: string
+                  security-group-tags:
+                    additionalProperties:
+                      type: string
+                    description: SecurityGroupTags is the list of tags to use when
+                      evaliating which security groups to use for the ENI.
+                    type: object
+                  security-groups:
+                    description: SecurityGroups is the list of security groups to
+                      attach to any ENI that is created and attached to the instance.
+                    items:
+                      type: string
+                    type: array
+                  vpc-id:
+                    description: VpcID is the VPC ID to use when allocating ENIs.
+                    type: string
+                  vswitch-tags:
+                    additionalProperties:
+                      type: string
+                    description: VSwitchTags is the list of tags to use when evaliating
+                      which vSwitch to use for the ENI.
+                    type: object
+                  vswitchs:
+                    description: VSwitchs is the ID of vSwitch available for ENI
+                    items:
+                      type: string
+                    type: array
+                type: object
               azure:
                 description: Azure is the Azure IPAM specific configuration.
                 properties:
@@ -245,6 +285,87 @@ spec:
             description: Status defines the realized specification/configuration and
               status of the node.
             properties:
+              alibaba-cloud:
+                description: AlibabaCloud is the AlibabaCloud specific status of the
+                  node.
+                properties:
+                  enis:
+                    additionalProperties:
+                      description: ENI represents an AlibabaCloud Elastic Network
+                        Interface
+                      properties:
+                        instance-id:
+                          description: InstanceID is the InstanceID using this ENI
+                          type: string
+                        mac-address:
+                          description: MacAddress is the mac address of the ENI
+                          type: string
+                        network-interface-id:
+                          description: NetworkInterfaceID is the ENI id
+                          type: string
+                        network-interface-name:
+                          description: NetworkInterfaceName is the ENI name
+                          type: string
+                        primary-ip-address:
+                          description: PrimaryIPAddress is the primary IP on ENI
+                          type: string
+                        private-ipsets:
+                          description: PrivateIPSets is the list for all IP on ENI
+                            , include PrimaryIPAddress
+                          items:
+                            description: PrivateIPSet is a nested struct in ecs response
+                            properties:
+                              primary:
+                                type: boolean
+                              private-ip-address:
+                                type: string
+                            type: object
+                          type: array
+                        security-groupids:
+                          description: SecurityGroupIDs is the security group ids
+                            used by this ENI
+                          items:
+                            type: string
+                          type: array
+                        status:
+                          description: Status is current status of ENI
+                          type: string
+                        type:
+                          description: Type is the ENI type Primary or Secondary
+                          type: string
+                        vpc:
+                          description: Vpc is the vpc ENI belong
+                          properties:
+                            cidr:
+                              description: CidrBlock is the VPC IPv4 CIDR
+                              type: string
+                            ipv6-cidr:
+                              description: IPv6CidrBlock is the VPC IPv6 CIDR
+                              type: string
+                            vpc-id:
+                              description: VpcID is the vpc ENI belong
+                              type: string
+                          type: object
+                        vswitch:
+                          description: VSwitch is the vSwitch ENI using
+                          properties:
+                            cidr:
+                              description: CidrBlock is the vSwitch IPv4 CIDR
+                              type: string
+                            ipv6-cidr:
+                              description: IPv6CidrBlock is the vSwitch IPv6 CIDR
+                              type: string
+                            vswitch-id:
+                              description: VSwitchID is the vSwitch ENI belong
+                              type: string
+                          type: object
+                        zone-id:
+                          description: ZoneID is the zone ENI belong
+                          type: string
+                      type: object
+                    description: ENIs is the list of ENIs on the node
+                    type: object
+                type: object
               azure:
                 description: Azure is the Azure specific status of the node.
                 properties:

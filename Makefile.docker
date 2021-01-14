@@ -83,9 +83,9 @@ docker-images-all: docker-cilium-image docker-plugin-image docker-hubble-relay-i
 
 docker-images-all-unstripped: docker-cilium-image-unstripped docker-plugin-image-unstripped docker-hubble-relay-image-unstripped docker-clustermesh-apiserver-image-unstripped docker-operator-images-all-unstripped
 
-docker-operator-images-all: docker-operator-image docker-operator-aws-image docker-operator-azure-image docker-operator-generic-image
+docker-operator-images-all: docker-operator-image docker-operator-aws-image docker-operator-azure-image docker-operator-alibabacloud-image docker-operator-generic-image
 
-docker-operator-images-all-unstripped: docker-operator-image-unstripped docker-operator-aws-image-unstripped docker-operator-azure-image-unstripped docker-operator-generic-image-unstripped
+docker-operator-images-all-unstripped: docker-operator-image-unstripped docker-operator-aws-image-unstripped docker-operator-azure-image-unstripped docker-operator-alibabacloud-image-unstripped docker-operator-generic-image-unstripped
 
 
 docker-image-runtime: builder-info

@@ -109,6 +109,8 @@ func init() {
 		defaultIPAM = ipamOption.IPAMENI
 	case "cilium-operator-azure":
 		defaultIPAM = ipamOption.IPAMAzure
+	case "cilium-operator-alibabacloud":
+		defaultIPAM = ipamOption.IPAMAlibabaCloud
 	case "cilium-operator-generic":
 		defaultIPAM = ipamOption.IPAMClusterPool
 	}
@@ -129,6 +131,8 @@ func init() {
 				return "cilium-operator-aws"
 			case ipamOption.IPAMAzure:
 				return "cilium-operator-azure"
+			case ipamOption.IPAMAlibabaCloud:
+				return "cilium-operator-alibabacloud"
 			case ipamOption.IPAMKubernetes, ipamOption.IPAMClusterPool, ipamOption.IPAMCRD:
 				return "cilium-operator-generic"
 			default:
@@ -157,9 +161,13 @@ func init() {
 			if ipamFlagValue != ipamOption.IPAMAzure {
 				return unsupporterErr()
 			}
+		case "cilium-operator-alibabacloud":
+			if ipamFlagValue != ipamOption.IPAMAlibabaCloud {
+				return unsupporterErr()
+			}
 		case "cilium-operator-generic":
 			switch ipamFlagValue {
-			case ipamOption.IPAMENI, ipamOption.IPAMAzure:
+			case ipamOption.IPAMENI, ipamOption.IPAMAzure, ipamOption.IPAMAlibabaCloud:
 				return unsupporterErr()
 			}
 		}

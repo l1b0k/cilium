@@ -25,6 +25,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/cilium/cilium/pkg/alibabacloud/metadata"
 	eniTypes "github.com/cilium/cilium/pkg/aws/eni/types"
 	"github.com/cilium/cilium/pkg/cidr"
 	"github.com/cilium/cilium/pkg/ip"
@@ -216,6 +217,13 @@ func deriveVpcCIDR(node *ciliumv2.CiliumNode) (result *cidr.CIDR) {
 			return
 		}
 	}
+	// return AlibabaCloud vpc CIDR
+	if len(node.Status.AlibabaCloud.ENIs) > 0 {
+		c, err := cidr.ParseCIDR(node.Spec.AlibabaCloud.CidrBlock)
+		if err == nil {
+			result = c
+		}
+	}
 	return
 }
 
@@ -251,7 +259,8 @@ func (n *nodeStore) hasMinimumIPsInPool() (minimumReached bool, required, numAva
 			minimumReached = true
 		}
 
-		if n.conf.IPAMMode() == ipamOption.IPAMENI {
+		if n.conf.IPAMMode() == ipamOption.IPAMENI ||
+			n.conf.IPAMMode() == ipamOption.IPAMAlibabaCloud {
 			if vpcCIDR := deriveVpcCIDR(n.ownNode); vpcCIDR != nil {
 				if nativeCIDR := n.conf.IPv4NativeRoutingCIDR(); nativeCIDR != nil {
 					logFields := logrus.Fields{
@@ -509,6 +518,30 @@ func (a *crdAllocator) buildAllocationResult(ip net.IP, ipInfo *ipamTypes.Alloca
 			if iface.ID == ipInfo.Resource {
 				result.Master = iface.MAC
 				result.GatewayIP = iface.GatewayIP
+				return
+			}
+		}
+
+		result = nil
+		err = fmt.Errorf("unable to find ENI %s", ipInfo.Resource)
+
+	// In AlibabaCloud mode,
+	case ipamOption.IPAMAlibabaCloud:
+		for _, eni := range a.store.ownNode.Status.AlibabaCloud.ENIs {
+			if eni.NetworkInterfaceID == ipInfo.Resource {
+				result.Master = eni.MacAddress
+				result.CIDRs = []string{eni.VSwitch.CidrBlock}
+				//result.CIDRs = append(result.CIDRs, eni.VSwitchID.CIDRs...)
+				// Add manually configured Native Routing CIDR
+				if a.conf.IPv4NativeRoutingCIDR() != nil {
+					result.CIDRs = append(result.CIDRs, a.conf.IPv4NativeRoutingCIDR().String())
+				}
+				gw, err2 := metadata.GetENIGateway(context.TODO(), eni.MacAddress)
+				if err2 != nil {
+					err = fmt.Errorf("unable get gw from ENI %w", err2)
+					return
+				}
+				result.GatewayIP = gw.String()
 				return
 			}
 		}
