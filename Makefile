@@ -392,6 +392,7 @@ generate-k8s-api:
 	aws:types\
 	azure:types\
 	ipam:types\
+	alibabacloud:types\
 	k8s:types\
 	maps:ctmap\
 	maps:encrypt\
@@ -415,6 +416,7 @@ generate-k8s-api:
 	$(call generate_k8s_api_deepcopy_deepequal,github.com/cilium/cilium/pkg/policy,"api:kafka")
 	$(call generate_k8s_api_all,github.com/cilium/cilium/pkg/k8s/apis,"cilium.io:v2")
 	$(call generate_k8s_api_deepcopy_deepequal,github.com/cilium/cilium/pkg/aws,"eni:types")
+	$(call generate_k8s_api_deepcopy_deepequal,github.com/cilium/cilium/pkg/alibabacloud,"eni:types")
 	$(call generate_k8s_api_deepcopy_deepequal,github.com/cilium/cilium/api,"v1:models")
 	$(call generate_k8s_api_deepcopy_deepequal,github.com/cilium/cilium,"$\
 	pkg:bpf\

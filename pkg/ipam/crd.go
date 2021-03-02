@@ -17,6 +17,7 @@ package ipam
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
 	"reflect"
 	"strconv"
@@ -25,6 +26,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	alibabaCloud "github.com/cilium/cilium/pkg/alibabacloud/eni"
 	eniTypes "github.com/cilium/cilium/pkg/aws/eni/types"
 	"github.com/cilium/cilium/pkg/cidr"
 	"github.com/cilium/cilium/pkg/ip"
@@ -216,6 +218,13 @@ func deriveVpcCIDR(node *ciliumv2.CiliumNode) (result *cidr.CIDR) {
 			return
 		}
 	}
+	// return AlibabaCloud vpc CIDR
+	if len(node.Status.AlibabaCloud.ENIs) > 0 {
+		c, err := cidr.ParseCIDR(node.Spec.AlibabaCloud.CidrBlock)
+		if err == nil {
+			result = c
+		}
+	}
 	return
 }
 
@@ -251,7 +260,8 @@ func (n *nodeStore) hasMinimumIPsInPool() (minimumReached bool, required, numAva
 			minimumReached = true
 		}
 
-		if n.conf.IPAMMode() == ipamOption.IPAMENI {
+		if n.conf.IPAMMode() == ipamOption.IPAMENI ||
+			n.conf.IPAMMode() == ipamOption.IPAMAlibabaCloud {
 			if vpcCIDR := deriveVpcCIDR(n.ownNode); vpcCIDR != nil {
 				if nativeCIDR := n.conf.IPv4NativeRoutingCIDR(); nativeCIDR != nil {
 					logFields := logrus.Fields{
@@ -466,6 +476,19 @@ func deriveGatewayIP(eni eniTypes.ENI) string {
 	return net.IPv4(addr[0], addr[1], addr[2], addr[3]+1).String()
 }
 
+func deriveAlibabaCloudGatewayIP(cidr string) string {
+	subnetIP, ipNet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		log.WithError(err).Warningf("Unable to parse AlibabaCloud subnet CIDR %s", cidr)
+		return ""
+	}
+	addr := subnetIP.To4()
+	ones, bits := ipNet.Mask.Size()
+	// get the second last ip
+	// Ref: https://www.alibabacloud.com/help/doc-detail/65398.html
+	return net.IPv4(addr[0], addr[1], addr[2], byte(int(math.Min(math.Pow(2, float64(bits-ones)), 256))-3)).String()
+}
+
 func (a *crdAllocator) buildAllocationResult(ip net.IP, ipInfo *ipamTypes.AllocationIP) (result *AllocationResult, err error) {
 	result = &AllocationResult{IP: ip}
 
@@ -499,9 +522,6 @@ func (a *crdAllocator) buildAllocationResult(ip net.IP, ipInfo *ipamTypes.Alloca
 			}
 		}
 
-		result = nil
-		err = fmt.Errorf("unable to find ENI %s", ipInfo.Resource)
-
 	// In Azure mode, the Resource points to the azure interface so we can
 	// derive the master interface
 	case ipamOption.IPAMAzure:
@@ -513,10 +533,23 @@ func (a *crdAllocator) buildAllocationResult(ip net.IP, ipInfo *ipamTypes.Alloca
 			}
 		}
 
-		result = nil
-		err = fmt.Errorf("unable to find ENI %s", ipInfo.Resource)
+	// In AlibabaCloud mode,
+	case ipamOption.IPAMAlibabaCloud:
+		for _, eni := range a.store.ownNode.Status.AlibabaCloud.ENIs {
+			if eni.NetworkInterfaceID != ipInfo.Resource {
+				continue
+			}
+			result.PrimaryMAC = eni.MacAddress
+			result.CIDRs = []string{eni.VSwitch.CidrBlock}
+
+			result.GatewayIP = deriveAlibabaCloudGatewayIP(eni.VSwitch.CidrBlock)
+			result.InterfaceNumber = strconv.Itoa(alibabaCloud.GetENIIndexFromTags(eni.Tags))
+			return
+		}
 	}
 
+	result = nil
+	err = fmt.Errorf("unable to find ENI %s", ipInfo.Resource)
 	return
 }
 
