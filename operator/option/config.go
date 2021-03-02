@@ -176,6 +176,16 @@ const (
 	// LeaderElectionRetryPeriod is the duration the LeaderElector clients should wait between
 	// tries of the actions in operator HA deployment.
 	LeaderElectionRetryPeriod = "leader-election-retry-period"
+
+	// AlibabaCloud options
+
+	// AlibabaCloudVPCID allow user to specific vpc
+	AlibabaCloudVPCID = "alibaba-cloud-vpc-id"
+
+	// AlibabaCloudReleaseExcessIPs allows releasing excess free IP addresses from ENI.
+	// Enabling this option reduces waste of IP addresses but may increase
+	// the number of API calls to AlibabaCloud ECS service.
+	AlibabaCloudReleaseExcessIPs = "alibaba-cloud-release-excess-ips"
 )
 
 // OperatorConfig is the configuration used by the operator.
@@ -308,6 +318,16 @@ type OperatorConfig struct {
 	// primary IPConfiguration
 	AzureUsePrimaryAddress bool
 
+	// AlibabaCloud options
+
+	// AlibabaCloudVpcID allow user to specific vpc
+	AlibabaCloudVpcID string
+
+	// AlibabaCloudReleaseExcessIPs allows releasing excess free IP addresses from ENI.
+	// Enabling this option reduces waste of IP addresses but may increase
+	// the number of API calls to AlibabaCloud ECS service.
+	AlibabaCloudReleaseExcessIPs bool
+
 	// LeaderElectionLeaseDuration is the duration that non-leader candidates will wait to
 	// force acquire leadership in Cilium Operator HA deployment.
 	LeaderElectionLeaseDuration time.Duration
@@ -362,6 +382,11 @@ func (c *OperatorConfig) Populate() {
 	c.AzureUsePrimaryAddress = viper.GetBool(AzureUsePrimaryAddress)
 	c.AzureUserAssignedIdentityID = viper.GetString(AzureUserAssignedIdentityID)
 
+	// AlibabaCloud options
+
+	c.AlibabaCloudVpcID = viper.GetString(AlibabaCloudVPCID)
+	c.AlibabaCloudReleaseExcessIPs = viper.GetBool(AlibabaCloudReleaseExcessIPs)
+
 	// Option maps and slices
 
 	if m := viper.GetStringSlice(IPAMSubnetsIDs); len(m) != 0 {
@@ -379,6 +404,7 @@ func (c *OperatorConfig) Populate() {
 	if m := viper.GetStringMapString(ENITags); len(m) != 0 {
 		c.ENITags = m
 	}
+
 }
 
 // Config represents the operator configuration.

@@ -25,6 +25,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/cilium/cilium/pkg/alibabacloud/metadata"
 	eniTypes "github.com/cilium/cilium/pkg/aws/eni/types"
 	"github.com/cilium/cilium/pkg/cidr"
 	"github.com/cilium/cilium/pkg/ip"
@@ -40,6 +41,7 @@ import (
 	"github.com/cilium/cilium/pkg/trigger"
 
 	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -216,6 +218,13 @@ func deriveVpcCIDR(node *ciliumv2.CiliumNode) (result *cidr.CIDR) {
 			return
 		}
 	}
+	// return AlibabaCloud vpc CIDR
+	if len(node.Status.AlibabaCloud.ENIs) > 0 {
+		c, err := cidr.ParseCIDR(node.Spec.AlibabaCloud.CidrBlock)
+		if err == nil {
+			result = c
+		}
+	}
 	return
 }
 
@@ -251,7 +260,8 @@ func (n *nodeStore) hasMinimumIPsInPool() (minimumReached bool, required, numAva
 			minimumReached = true
 		}
 
-		if n.conf.IPAMMode() == ipamOption.IPAMENI {
+		if n.conf.IPAMMode() == ipamOption.IPAMENI ||
+			n.conf.IPAMMode() == ipamOption.IPAMAlibabaCloud {
 			if vpcCIDR := deriveVpcCIDR(n.ownNode); vpcCIDR != nil {
 				if nativeCIDR := n.conf.IPv4NativeRoutingCIDR(); nativeCIDR != nil {
 					logFields := logrus.Fields{
@@ -515,8 +525,40 @@ func (a *crdAllocator) buildAllocationResult(ip net.IP, ipInfo *ipamTypes.Alloca
 
 		result = nil
 		err = fmt.Errorf("unable to find ENI %s", ipInfo.Resource)
+
+	// In AlibabaCloud mode,
+	case ipamOption.IPAMAlibabaCloud:
+		for _, eni := range a.store.ownNode.Status.AlibabaCloud.ENIs {
+			if eni.NetworkInterfaceID != ipInfo.Resource {
+				continue
+			}
+			result.PrimaryMAC = eni.MacAddress
+			result.CIDRs = []string{eni.VSwitch.CidrBlock}
+
+			gw, err2 := metadata.GetENIGateway(context.TODO(), eni.MacAddress)
+			if err2 != nil {
+				err = fmt.Errorf("unable get gw from ENI %w", err2)
+				return
+			}
+			result.GatewayIP = gw.IP.String()
+
+			links, err2 := netlink.LinkList()
+			if err2 != nil {
+				err = fmt.Errorf("unable get link %w", err2)
+				return
+			}
+			for _, link := range links {
+				if link.Attrs().HardwareAddr.String() == eni.MacAddress {
+					result.InterfaceNumber = strconv.Itoa(link.Attrs().Index)
+					break
+				}
+			}
+			return
+		}
 	}
 
+	result = nil
+	err = fmt.Errorf("unable to find ENI %s", ipInfo.Resource)
 	return
 }
 

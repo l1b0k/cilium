@@ -235,10 +235,10 @@ func (d *Daemon) allocateHealthIPs() error {
 			log.Debugf("IPv4 health endpoint address: %s", result.IP)
 			d.nodeDiscovery.LocalNode.IPv4HealthIP = result.IP
 
-			// In ENI mode, we require the gateway, CIDRs, and the ENI MAC addr
+			// In ENI and AlibabaCloud ENI mode, we require the gateway, CIDRs, and the ENI MAC addr
 			// in order to set up rules and routes on the local node to direct
 			// endpoint traffic out of the ENIs.
-			if option.Config.IPAM == ipamOption.IPAMENI {
+			if option.Config.IPAM == ipamOption.IPAMENI || option.Config.IPAM == ipamOption.IPAMAlibabaCloud {
 				if err := d.parseHealthEndpointInfo(result); err != nil {
 					log.WithError(err).Warn("Unable to allocate health information for ENI")
 				}
