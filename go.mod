@@ -32,6 +32,7 @@ require (
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/libnetwork v0.0.0-20190128195551-d8d4c8cf03d7
 	github.com/fsnotify/fsnotify v1.4.10-0.20200417215612-7f4cf4dd2b52
+	github.com/go-kit/kit v0.10.0 // indirect
 	github.com/go-openapi/errors v0.19.9
 	github.com/go-openapi/loads v0.20.0
 	github.com/go-openapi/runtime v0.19.26
@@ -40,7 +41,7 @@ require (
 	github.com/go-openapi/swag v0.19.14
 	github.com/go-openapi/validate v0.20.1
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/protobuf v1.4.3
+	github.com/golang/protobuf v1.5.2
 	github.com/google/go-cmp v0.5.5
 	github.com/google/gopacket v1.1.19
 	github.com/google/gops v0.3.18
@@ -64,7 +65,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.1 // indirect
 	github.com/optiopay/kafka v0.0.0-20171218140449-a1e0071f1ce8
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/prometheus/client_golang v1.9.0
+	github.com/prometheus/client_golang v1.12.0
 	github.com/prometheus/client_model v0.2.1-0.20200623203004-60555c9708c7
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/sasha-s/go-deadlock v0.2.1-0.20190427202633-1595213edefa
@@ -81,15 +82,15 @@ require (
 	go.uber.org/goleak v1.1.10
 	go.universe.tf/metallb v0.9.6
 	golang.org/x/crypto v0.0.0-20210503195802-e9a32991a82e
-	golang.org/x/net v0.0.0-20210504132125-bbd867fde50d
+	golang.org/x/net v0.0.0-20210525063256-abc453219eb5
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20210503173754-0981d6026fa6
+	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba
 	golang.org/x/tools v0.1.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20210506160403-92e472f520a5
 	google.golang.org/genproto v0.0.0-20210126160654-44e461bb6506
-	google.golang.org/grpc v1.29.1
-	google.golang.org/protobuf v1.25.0
+	google.golang.org/grpc v1.31.0
+	google.golang.org/protobuf v1.26.0
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c
 	gopkg.in/ini.v1 v1.62.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
