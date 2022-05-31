@@ -947,6 +947,31 @@ var _ = Describe("K8sDatapathConfig", func() {
 			Expect(strings.TrimSpace(res.Stdout())).To(Equal("0"), "Unexpected conntrack entries")
 		})
 	})
+
+	Context("Pod-link", func() {
+		SkipItIf(func() bool {
+			return !helpers.IsIntegration(helpers.CIIntegrationKind)
+		}, "Test pod-link chain", func() {
+			configMpatPath := helpers.ManifestGet(kubectl.BasePath(), "cni-pod-link.yaml")
+			kubectl.Apply(helpers.ApplyOptions{FilePath: configMpatPath, Namespace: helpers.CiliumNamespace}).ExpectSuccess("Cannot add configmap")
+
+			deploymentManager.DeployCilium(map[string]string{
+				"tunnel":           "disabled",
+				"cni.customConf":   "true",
+				"cni.chainingMode": "pod-link",
+				"cni.configMap":    "cni-pod-link",
+			}, DeployCiliumOptionsAndDNS)
+
+			_, err := kubectl.GetCiliumPodOnNode(helpers.K8s1)
+			ExpectWithOffset(1, err).Should(BeNil(), "Unable to determine cilium pod on node %s", helpers.K8s1)
+
+			Expect(testPodConnectivityAcrossNodes(kubectl)).Should(BeTrue(), "Connectivity test between nodes failed")
+		})
+
+		AfterAll(func() {
+			kubectl.DeleteResource("configmap", fmt.Sprintf("cni-pod-link --namespace=%s", helpers.CiliumNamespace))
+		})
+	})
 })
 
 func testHostFirewall(kubectl *helpers.Kubectl) {

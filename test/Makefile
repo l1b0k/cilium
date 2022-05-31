@@ -16,6 +16,10 @@ NETNEXT ?= false
 KUBEPROXY ?= 1
 NO_CILIUM_ON_NODES ?= ""
 
+CNI_VERSION="v1.1.1"
+CNI_TARBALL="${CNI_VERSION}/cni-plugins-linux-amd64-${CNI_VERSION}.tgz"
+CNI_URL="https://github.com/containernetworking/plugins/releases/download/${CNI_TARBALL}"
+
 GINKGO = $(QUIET) ginkgo
 
 REGISTRY_CREDENTIALS ?= "${DOCKER_LOGIN}:${DOCKER_PASSWORD}"
@@ -44,6 +48,14 @@ k8s-kind:
 		>&2 echo "usage: FOCUS=K8sFoo make k8s-kind"; \
 		exit 1; \
 	fi
+
+	curl -sSL --retry 5 --output /tmp/cni.tgz "${CNI_URL}" \
+	&& mkdir -p /tmp/cni \
+	&& tar -C /tmp/cni -xzf /tmp/cni.tgz \
+	&& rm -f /tmp/cni.tgz \
+	&& kind get nodes | xargs -n1 -I {} bash -c "docker cp /tmp/cni/ipvlan {}:/opt/cni/bin" \
+	&& rm -rf /tmp/cni
+
 	@CNI_INTEGRATION=kind \
 		K8S_VERSION="$$(kubectl version -o json | jq -r '.serverVersion | "\(.major).\(.minor)"')" \
 		NETNEXT="$(NETNEXT)" \
