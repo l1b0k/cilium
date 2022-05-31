@@ -17,6 +17,9 @@ case "$CILIUM_CNI_CHAINING_MODE" in
 "aws-cni")
 	CNI_CONF_NAME=${CNI_CONF_NAME:-05-cilium.conflist}
 	;;
+"pod-link")
+	CNI_CONF_NAME=${CNI_CONF_NAME:-05-cilium.conflist}
+	;;
 *)
 	CNI_CONF_NAME=${CNI_CONF_NAME:-05-cilium.conf}
 	;;
