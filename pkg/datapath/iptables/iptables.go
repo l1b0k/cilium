@@ -283,13 +283,12 @@ func (m *IptablesManager) Init() {
 			"Unable to get information about kernel modules")
 	}
 	if err := modulesManager.FindOrLoadModules(
-		"ip_tables", "iptable_nat", "iptable_mangle", "iptable_raw",
-		"iptable_filter"); err != nil {
+		"ip_tables"); err != nil {
 		log.WithError(err).Warning(
 			"iptables modules could not be initialized. It probably means that iptables is not available on this system")
 	}
 	if err := modulesManager.FindOrLoadModules(
-		"ip6_tables", "ip6table_mangle", "ip6table_raw", "ip6table_filter"); err != nil {
+		"ip6_tables"); err != nil {
 		if option.Config.EnableIPv6 {
 			log.WithError(err).Fatal(
 				"IPv6 is enabled and ip6tables modules could not be initialized (try disabling IPv6 in Cilium or loading ip6_tables, ip6table_mangle, ip6table_raw and ip6table_filter kernel modules)")
