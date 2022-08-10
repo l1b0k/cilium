@@ -101,7 +101,7 @@ func (c *customChain) exists(prog iptablesInterface) (bool, error) {
 
 	output, err := prog.runProgCombinedOutput(args)
 	if err != nil {
-		if strings.Contains(string(output), "No chain/target/match by that name.") {
+		if strings.Contains(string(output), "No chain/target/match by that name.") || strings.Contains(string(output), "incompatible") {
 			return false, nil
 		}
 
