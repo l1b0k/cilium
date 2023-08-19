@@ -56,7 +56,7 @@ const (
 var (
 	mapControllers = controller.NewManager()
 
-	supportedMapTypes *probes.MapTypes
+	SupportedMapTypes *probes.MapTypes
 )
 
 func (t MapType) String() string {
@@ -148,14 +148,14 @@ func GetMapType(t MapType) MapType {
 	// If the supported map types have not been set, default to the system
 	// prober. This path enables unit tests to mock out the supported map
 	// types.
-	if supportedMapTypes == nil {
+	if SupportedMapTypes == nil {
 		setMapTypesFromProber(probes.NewProbeManager())
 	}
 	switch t {
 	case MapTypeLPMTrie:
 		fallthrough
 	case MapTypeLRUHash:
-		if !supportedMapTypes.HaveLruHashMapType {
+		if !SupportedMapTypes.HaveLruHashMapType {
 			return MapTypeHash
 		}
 	}
@@ -167,7 +167,7 @@ func GetMapType(t MapType) MapType {
 // injecting our own mocked prober.
 func setMapTypesFromProber(prober prober) {
 	features := prober.Probe()
-	supportedMapTypes = &features.MapTypes
+	SupportedMapTypes = &features.MapTypes
 }
 
 // prober abstracts the notion of a kernel feature prober. This is useful for
